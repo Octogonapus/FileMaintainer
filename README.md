@@ -85,6 +85,6 @@ jobs:
 
       - name: Run FileMaintainer
         env:
-          GITHUB_TOKEN: ${{ secrets.LEUKO_ORG_PAT }}
+          GITHUB_TOKEN: ${{ secrets.SOME_PAT }}
         run: ./FileMaintainer --dry-run=true --debug # FIXME turn off dry runs after you have tested this
 ```
