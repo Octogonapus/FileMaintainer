@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      VERSION: 0.1.0
+      VERSION: 0.1.2
 
     steps:
       - uses: actions/checkout@v3

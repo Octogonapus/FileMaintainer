@@ -182,7 +182,8 @@ func (p *Processor) cloneRepo(owner string, repo string) (string, error) {
 	}
 	ref := fmt.Sprintf("https://github.com/%s/%s.git", owner, repo)
 	cmd := exec.Command("git", "clone", "--depth=1", "--", ref, dir)
-	if err := cmd.Run(); err != nil {
+	if out, err := cmd.Output(); err != nil {
+		p.logger.Debugf("%s: %s", cmd.String(), out)
 		return "", err
 	}
 	return dir, nil
@@ -196,14 +197,16 @@ func (p *Processor) writeFileToRepo(dir string, dest string, content []byte) err
 
 	cmd := exec.Command("git", "add", "--", fullpath)
 	cmd.Dir = dir
-	if err := cmd.Run(); err != nil {
+	if out, err := cmd.Output(); err != nil {
+		p.logger.Debugf("%s: %s", cmd.String(), out)
 		return err
 	}
 
 	msg := fmt.Sprintf("FileMaintainer: Create or Update %s", dest)
 	cmd = exec.Command("git", "commit", "-m", msg)
 	cmd.Dir = dir
-	if err := cmd.Run(); err != nil {
+	if out, err := cmd.Output(); err != nil {
+		p.logger.Debugf("%s: %s", cmd.String(), out)
 		return err
 	}
 
@@ -213,7 +216,11 @@ func (p *Processor) writeFileToRepo(dir string, dest string, content []byte) err
 func (p *Processor) pushRepo(dir string) error {
 	cmd := exec.Command("git", "push")
 	cmd.Dir = dir
-	return cmd.Run()
+	if out, err := cmd.Output(); err != nil {
+		p.logger.Debugf("%s: %s", cmd.String(), out)
+		return err
+	}
+	return nil
 }
 
 func (p *Processor) applyToAllRepos(remote RemoteSpec, remoteName string, f func(owner string, repo string) error) error {
