@@ -59,3 +59,32 @@ path = "juliafmt/action.yml" # a local file in the same directory as this file
 dest = ".github/workflows/formatter.yml" # the remote file path relative to the repository root
 remotes = ["julia_pkgs"]
 ```
+
+### Example GitHub Actions Workflow
+
+```yml
+name: FileMaintainer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  FileMaintainer:
+    runs-on: ubuntu-latest
+
+    env:
+      VERSION: 0.1.0
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install FileMaintainer
+        run: |
+          wget -nv "https://github.com/Octogonapus/FileMaintainer/releases/download/v$VERSION/FileMaintainer_${VERSION}_linux_amd64.tar.gz"
+          tar -xf "FileMaintainer_${VERSION}_linux_amd64.tar.gz"
+
+      - name: Run FileMaintainer
+        env:
+          GITHUB_TOKEN: ${{ secrets.LEUKO_ORG_PAT }}
+        run: ./FileMaintainer --dry-run=true --debug # FIXME turn off dry runs after you have tested this
+```
