@@ -7,6 +7,7 @@ Supports individual repositories, some/all repositories of a user(s), and some/a
 GitHub Enterprise is not directly supported, just list your organizations instead.
 
 Changes are applied to the default branch.
+Updates are primarily made via the GitHub API; if this fails, Git will be used instead.
 
 Requires a GitHub token in the `GITHUB_TOKEN` environment variable with scopes: `repo`, `workflow`.
 
