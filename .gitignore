@@ -33,3 +33,5 @@ go.work
 *.vsix
 
 .env
+
+FileMaintainer
