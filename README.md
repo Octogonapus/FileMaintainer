@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      VERSION: 0.1.2
+      VERSION: 0.1.4
 
     steps:
       - uses: actions/checkout@v3
@@ -87,5 +87,5 @@ jobs:
       - name: Run FileMaintainer
         env:
           GITHUB_TOKEN: ${{ secrets.SOME_PAT }}
-        run: ./FileMaintainer --dry-run=true --debug # FIXME turn off dry runs after you have tested this
+        run: ./FileMaintainer --dry-run=true # FIXME turn off dry runs after you have tested this
 ```
