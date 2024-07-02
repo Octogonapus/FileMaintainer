@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/google/go-github/v52/github"
 	"go.uber.org/zap"
@@ -73,14 +74,24 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 					return nil
 				}
 
-				err = p.updateFile(owner, repo, file.Dest, content, *remoteContentResp.SHA)
-				if err != nil {
-					return err
+				if p.dryRun {
+					p.printUpdateFileDryRun(remoteContent, string(content), owner, repo, file.Dest)
+					return nil
+				} else {
+					err = p.updateFile(owner, repo, file.Dest, content, *remoteContentResp.SHA)
+					if err != nil {
+						return err
+					}
 				}
 			} else if resp.StatusCode == 404 {
-				err = p.createFile(owner, repo, file.Dest, content)
-				if err != nil {
-					return err
+				if p.dryRun {
+					p.logger.Infof("would create file %s/%s/%s", owner, repo, file.Dest)
+					return nil
+				} else {
+					err = p.createFile(owner, repo, file.Dest, content)
+					if err != nil {
+						return err
+					}
 				}
 			} else {
 				return fmt.Errorf("failed to fetch contents of file %s/%s/%s: %s", owner, repo, file.Dest, err)
@@ -94,13 +105,25 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 	return nil
 }
 
-func (p *Processor) updateFile(owner string, repo string, dest string, content []byte, sha string) error {
-	if p.dryRun {
-		p.logger.Infof("would create or update file %s/%s/%s", owner, repo, dest)
-		return nil
+func (p *Processor) printUpdateFileDryRun(remoteContent string, content string, owner string, repo string, dest string) {
+	remoteContentLines := strings.Split(remoteContent, "\n")
+	contentLines := strings.Split(content, "\n")
+	linesOfDiff := 0
+	for i, line := range contentLines {
+		if i >= len(remoteContentLines) {
+			linesOfDiff += len(remoteContentLines) - i
+			break
+		} else {
+			if line != remoteContentLines[i] {
+				linesOfDiff++
+			}
+		}
 	}
+	p.logger.Infof("would update %d lines in file %s/%s/%s", linesOfDiff, owner, repo, dest)
+}
 
-	msg := fmt.Sprintf("FileMaintainer: Create or Update %s", dest)
+func (p *Processor) updateFile(owner string, repo string, dest string, content []byte, sha string) error {
+	msg := fmt.Sprintf("FileMaintainer: Update %s", dest)
 	_, resp, err := p.gh.Repositories.CreateFile(context.Background(),
 		owner,
 		repo,
@@ -123,12 +146,7 @@ func (p *Processor) updateFile(owner string, repo string, dest string, content [
 }
 
 func (p *Processor) createFile(owner string, repo string, dest string, content []byte) error {
-	if p.dryRun {
-		p.logger.Infof("would create or update file %s/%s/%s", owner, repo, dest)
-		return nil
-	}
-
-	msg := fmt.Sprintf("FileMaintainer: Create or Update %s", dest)
+	msg := fmt.Sprintf("FileMaintainer: Create %s", dest)
 	_, resp, err := p.gh.Repositories.CreateFile(context.Background(),
 		owner,
 		repo,
@@ -138,7 +156,7 @@ func (p *Processor) createFile(owner string, repo string, dest string, content [
 			Content: content,
 		})
 	if resp.StatusCode == 409 {
-		p.logger.Debugf("could not update file via API due to conflict (will try git-based update): %s", err)
+		p.logger.Debugf("could not create file via API due to conflict (will try git-based update): %s", err)
 		return p.updateFileViaGit(owner, repo, dest, content)
 	} else {
 		if err != nil {
@@ -151,7 +169,7 @@ func (p *Processor) createFile(owner string, repo string, dest string, content [
 
 func (p *Processor) updateFileViaGit(owner string, repo string, dest string, content []byte) error {
 	if p.dryRun {
-		p.logger.Infof("would create or update file %s/%s/%s", owner, repo, dest)
+		p.logger.Infof("would update file %s/%s/%s", owner, repo, dest)
 		return nil
 	}
 
