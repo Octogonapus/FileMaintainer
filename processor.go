@@ -52,13 +52,11 @@ func (p *Processor) ProcessFiles(config Config) error {
 }
 
 func (p *Processor) ProcessFile(file FileSpec, config Config) error {
-	if p.dryRun {
-		msg := fmt.Sprintf("Processing file %s", file.Dest)
-		sep := strings.Repeat("-", len(msg))
-		p.logger.Infof(sep)
-		p.logger.Infof(msg)
-		p.logger.Infof(sep)
-	}
+	msg := fmt.Sprintf("Processing file %s", file.Dest)
+	sep := strings.Repeat("-", len(msg))
+	p.logger.Infof(sep)
+	p.logger.Infof(msg)
+	p.logger.Infof(sep)
 
 	for _, remoteName := range file.Remotes {
 		remote, ok := config.Remote[remoteName]
