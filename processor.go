@@ -52,7 +52,14 @@ func (p *Processor) ProcessFiles(config Config) error {
 }
 
 func (p *Processor) ProcessFile(file FileSpec, config Config) error {
-	p.logger.Debugf("processing file %s", file.Dest)
+	if p.dryRun {
+		msg := fmt.Sprintf("Processing file %s", file.Dest)
+		sep := strings.Repeat("-", len(msg))
+		p.logger.Infof(sep)
+		p.logger.Infof(msg)
+		p.logger.Infof(sep)
+	}
+
 	for _, remoteName := range file.Remotes {
 		remote, ok := config.Remote[remoteName]
 		if !ok {
