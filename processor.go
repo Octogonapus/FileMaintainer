@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -207,6 +208,10 @@ func (p *Processor) cloneRepo(owner string, repo string) (string, error) {
 	cmd := exec.Command("git", "clone", "--depth=1", "--", ref, dir)
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			p.logger.Debugf("stderr: %s", exitErr.Stderr)
+		}
 		return "", fmt.Errorf("failed to clone %s/%s: %s", owner, repo, err)
 	}
 	return dir, nil
