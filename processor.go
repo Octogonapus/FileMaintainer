@@ -227,6 +227,10 @@ func (p *Processor) writeFileToRepo(dir string, dest string, content []byte) err
 	cmd.Dir = dir
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			p.logger.Debugf("stderr: %s", exitErr.Stderr)
+		}
 		return fmt.Errorf("failed to add %s: %s", fullpath, err)
 	}
 
@@ -235,6 +239,10 @@ func (p *Processor) writeFileToRepo(dir string, dest string, content []byte) err
 	cmd.Dir = dir
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			p.logger.Debugf("stderr: %s", exitErr.Stderr)
+		}
 		return fmt.Errorf("failed to commit %s: %s", fullpath, err)
 	}
 
@@ -246,6 +254,10 @@ func (p *Processor) pushRepo(dir string) error {
 	cmd.Dir = dir
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			p.logger.Debugf("stderr: %s", exitErr.Stderr)
+		}
 		return err
 	}
 	return nil
