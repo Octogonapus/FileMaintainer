@@ -66,7 +66,7 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 
 		content, err := os.ReadFile(file.Path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read file %s: %s", file.Path, err)
 		}
 
 		err = p.applyToAllRepos(remote, remoteName, func(owner string, repo string) error {
@@ -85,7 +85,7 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 				} else {
 					err = p.updateFile(owner, repo, file.Dest, content, *remoteContentResp.SHA)
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to update file %s/%s/%s: %s", owner, repo, file.Dest, err)
 					}
 				}
 			} else if resp.StatusCode == 404 {
@@ -95,7 +95,7 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 				} else {
 					err = p.createFile(owner, repo, file.Dest, content)
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to create file %s/%s/%s: %s", owner, repo, file.Dest, err)
 					}
 				}
 			} else {
@@ -179,10 +179,10 @@ func (p *Processor) updateFileViaGit(owner string, repo string, dest string, con
 	}
 
 	dir, err := p.cloneRepo(owner, repo)
-	p.logger.Debugf("cloned %s/%s to %s: %s", owner, repo, dir, err)
 	if err != nil {
 		return err
 	}
+	p.logger.Debugf("cloned %s/%s to %s: %s", owner, repo, dir, err)
 
 	err = p.writeFileToRepo(dir, dest, content)
 	if err != nil {
@@ -198,16 +198,16 @@ func (p *Processor) updateFileViaGit(owner string, repo string, dest string, con
 func (p *Processor) cloneRepo(owner string, repo string) (string, error) {
 	dir := path.Join(os.TempDir(), "FileMaintainer", "clones", owner, repo)
 	if err := os.RemoveAll(dir); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to remove %s: %s", dir, err)
 	}
 	if err := os.MkdirAll(path.Dir(dir), 0777); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create %s: %s", path.Dir(dir), err)
 	}
 	ref := fmt.Sprintf("https://github.com/%s/%s.git", owner, repo)
 	cmd := exec.Command("git", "clone", "--depth=1", "--", ref, dir)
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
-		return "", err
+		return "", fmt.Errorf("failed to clone %s/%s: %s", owner, repo, err)
 	}
 	return dir, nil
 }
@@ -215,14 +215,14 @@ func (p *Processor) cloneRepo(owner string, repo string) (string, error) {
 func (p *Processor) writeFileToRepo(dir string, dest string, content []byte) error {
 	fullpath := path.Join(dir, dest)
 	if err := os.WriteFile(fullpath, content, 0777); err != nil {
-		return err
+		return fmt.Errorf("failed to write file %s: %s", fullpath, err)
 	}
 
 	cmd := exec.Command("git", "add", "--", fullpath)
 	cmd.Dir = dir
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
-		return err
+		return fmt.Errorf("failed to add %s: %s", fullpath, err)
 	}
 
 	msg := fmt.Sprintf("FileMaintainer: Create or Update %s", dest)
@@ -230,7 +230,7 @@ func (p *Processor) writeFileToRepo(dir string, dest string, content []byte) err
 	cmd.Dir = dir
 	if out, err := cmd.Output(); err != nil {
 		p.logger.Debugf("%s: %s", cmd.String(), out)
-		return err
+		return fmt.Errorf("failed to commit %s: %s", fullpath, err)
 	}
 
 	return nil
