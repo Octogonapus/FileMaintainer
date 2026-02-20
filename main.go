@@ -22,6 +22,7 @@ type RemoteSpec struct {
 	Org          string
 	User         string
 	Repo         string
+	Repos        []string
 	RepoGlob     string   `toml:"repo_glob"`
 	ExcludeRepos []string `toml:"exclude_repos"`
 }

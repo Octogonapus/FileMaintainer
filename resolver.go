@@ -57,6 +57,8 @@ func (resolver *RemoteResolver) ResolveRemote(remote RemoteSpec, remoteName stri
 	if len(remote.Repo) > 0 {
 		// The repo has been directly specified, nothing else to do
 		resolved = &ResolvedRemote{Owner: remote.Owner(), Repos: []string{remote.Repo}}
+	} else if len(remote.Repos) > 0 {
+		resolved = &ResolvedRemote{Owner: remote.Owner(), Repos: remote.Repos}
 	} else if len(remote.RepoGlob) > 0 {
 		// Find the repos matching the glob
 		repos, err := listAllRepos(resolver.gh, remote)
