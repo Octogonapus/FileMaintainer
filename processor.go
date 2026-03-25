@@ -72,8 +72,21 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 		}
 
 		err = p.applyToAllRepos(remote, remoteName, func(owner string, repo string) error {
-			remoteContentResp, _, resp, err := p.gh.Repositories.GetContents(context.Background(), owner, repo, file.Dest, &github.RepositoryContentGetOptions{})
-			if resp.StatusCode == 200 {
+			var remoteContentResp *github.RepositoryContent
+			var resp *github.Response
+			var err error
+			for attempt := 1; attempt <= 3; attempt++ {
+				remoteContentResp, _, resp, err = p.gh.Repositories.GetContents(context.Background(), owner, repo, file.Dest, &github.RepositoryContentGetOptions{})
+				if resp != nil && resp.StatusCode == 500 && attempt < 3 {
+					backoff := time.Duration(attempt*attempt) * 500 * time.Millisecond
+					p.logger.Debugf("received 500 getting contents of file %s/%s/%s (attempt %d/%d); retrying in %s: %s", owner, repo, file.Dest, attempt, 3, backoff, err)
+					time.Sleep(backoff)
+					continue
+				}
+				break
+			}
+			switch resp.StatusCode {
+			case 200:
 				// Avoid an update if the remote content doesn't need to change
 				remoteContent, err := remoteContentResp.GetContent()
 				if err == nil && remoteContent == string(content) {
@@ -90,7 +103,7 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 						return fmt.Errorf("failed to update file %s/%s/%s: %s", owner, repo, file.Dest, err)
 					}
 				}
-			} else if resp.StatusCode == 404 {
+			case 404:
 				if p.dryRun {
 					p.logger.Infof("would create file %s/%s/%s", owner, repo, file.Dest)
 					return nil
@@ -100,7 +113,7 @@ func (p *Processor) ProcessFile(file FileSpec, config Config) error {
 						return fmt.Errorf("failed to create file %s/%s/%s: %s", owner, repo, file.Dest, err)
 					}
 				}
-			} else {
+			default:
 				return fmt.Errorf("failed to fetch contents of file %s/%s/%s: %s", owner, repo, file.Dest, err)
 			}
 			return nil
