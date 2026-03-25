@@ -27,8 +27,8 @@ jobs:
       - uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
         with:
           inputs: "."
-          min-severity: high
-          min-confidence: high
+          min-severity: low
+          min-confidence: low
           version: 1.23.1 # zizmor maintains a static map of version hashes so this is actually pinned https://github.com/zizmorcore/zizmor-action/blob/main/support/versions
           advanced-security: false # print to console instead of uploading a SARIF
           fail-on-no-inputs: true
