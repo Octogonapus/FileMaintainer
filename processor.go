@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v52/github"
 	"go.uber.org/zap"
@@ -153,15 +154,29 @@ func (p *Processor) updateFile(owner string, repo string, dest string, content [
 
 func (p *Processor) createFile(owner string, repo string, dest string, content []byte) error {
 	msg := fmt.Sprintf("FileMaintainer: Create %s", dest)
-	_, resp, err := p.gh.Repositories.CreateFile(context.Background(),
-		owner,
-		repo,
-		dest,
-		&github.RepositoryContentFileOptions{
-			Message: &msg,
-			Content: content,
-		})
-	if resp.StatusCode == 409 {
+	var resp *github.Response
+	var err error
+
+	const maxAttempts = 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		_, resp, err = p.gh.Repositories.CreateFile(context.Background(),
+			owner,
+			repo,
+			dest,
+			&github.RepositoryContentFileOptions{
+				Message: &msg,
+				Content: content,
+			})
+		if resp != nil && resp.StatusCode == 502 && attempt < maxAttempts {
+			backoff := time.Duration(attempt*attempt) * 500 * time.Millisecond
+			p.logger.Debugf("received 502 creating %s/%s/%s (attempt %d/%d); retrying in %s: %s", owner, repo, dest, attempt, maxAttempts, backoff, err)
+			time.Sleep(backoff)
+			continue
+		}
+		break
+	}
+
+	if resp != nil && resp.StatusCode == 409 {
 		p.logger.Debugf("could not create file via API due to conflict (will try git-based update): %s", err)
 		return p.updateFileViaGit(owner, repo, dest, content)
 	} else {
