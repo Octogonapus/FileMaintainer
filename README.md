@@ -6,7 +6,10 @@ Supports GitHub.
 Supports individual repositories, some/all repositories of a user(s), and some/all repositories of an organization(s).
 GitHub Enterprise is not directly supported, just list your organizations instead.
 
-Changes are applied to the default branch.
+All changes to a repository are made in a single commit.
+By default, that commit is pushed to the `filemaintainer/update` branch and a pull request is opened against the default branch.
+Later runs force-update that branch, so the open pull request is reused rather than duplicated.
+Set `push_to_default_branch = true` for a repository to push the commit directly to its default branch instead.
 Updates are primarily made via the GitHub API; if this fails, Git will be used instead.
 
 Requires a GitHub token in the `GITHUB_TOKEN` environment variable with scopes: `repo`, `workflow`.
@@ -36,18 +39,18 @@ Review the changes and apply them: `FileMaintainer --dry-run=false`.
 
 ```toml
 [remote.entire_org]
-owner = "MyOrg" # owner signifies an organization
+org = "MyOrg" # org signifies an organization
 exclude_repos = ["SomeRepo"] # filter out some repositories by name
 
 [remote.some_user]
 user = "SomeUsername" # user signifies an individual user
 
 [remote.julia_pkgs]
-owner = "MyOrg"
+org = "MyOrg"
 repo_glob = "*.jl" # filter by repository name
 
 [remote.single_repo]
-owner = "MyOrg"
+org = "MyOrg"
 repo = "MyRepo" # select a single repository by name
 
 [file.gitleaks]
@@ -59,6 +62,9 @@ remotes = ["entire_org"]
 path = "juliafmt/action.yml" # a local file in the same directory as this file
 dest = ".github/workflows/formatter.yml" # the remote file path relative to the repository root
 remotes = ["julia_pkgs"]
+
+[repo."MyOrg/MyRepo"] # per-repository settings, keyed by owner/repo
+push_to_default_branch = true # push directly to the default branch instead of opening a pull request
 ```
 
 ### Example GitHub Actions Workflow

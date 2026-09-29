@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/gofri/go-github-ratelimit/github_ratelimit"
@@ -16,6 +17,12 @@ import (
 type Config struct {
 	Remote map[string]RemoteSpec
 	File   map[string]FileSpec
+	// Keyed by "owner/repo" so settings apply regardless of which remotes select the repository.
+	Repo map[string]RepoSettings
+}
+
+type RepoSettings struct {
+	PushToDefaultBranch bool `toml:"push_to_default_branch"`
 }
 
 type RemoteSpec struct {
@@ -71,7 +78,7 @@ func main() {
 	processor := NewProcessor(*dryRun, *onlyRepo, gh, sugar)
 	err = processor.ProcessFiles(config)
 	if err != nil {
-		panic(err)
+		sugar.Fatalf("finished with errors:\n%s", err)
 	}
 }
 
@@ -114,7 +121,23 @@ func validateConfig(config Config) error {
 	}
 
 	err = validateFiles(config)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return validateRepoSettings(config.Repo)
+}
+
+// Valid repo settings:
+//   - Are keyed by "owner/repo"
+func validateRepoSettings(repoSettings map[string]RepoSettings) error {
+	for name := range repoSettings {
+		owner, repo, found := strings.Cut(name, "/")
+		if !found || len(owner) == 0 || len(repo) == 0 || strings.Contains(repo, "/") {
+			return fmt.Errorf("repo settings %s must be keyed by owner/repo", name)
+		}
+	}
+	return nil
 }
 
 // Valid remotes:

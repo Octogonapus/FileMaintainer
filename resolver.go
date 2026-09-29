@@ -121,7 +121,7 @@ func listAllRepos(gh *github.Client, remote RemoteSpec) ([]*github.Repository, e
 				},
 			)
 		}
-		if resp.StatusCode != 200 {
+		if err != nil {
 			return []*github.Repository{}, fmt.Errorf("failed to list repos for %v: %s", remote, err)
 		}
 
