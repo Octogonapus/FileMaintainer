@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/bmatcuk/doublestar/v4 v4.10.0
+	github.com/bmatcuk/doublestar/v4 v4.10.2
 	github.com/gofri/go-github-ratelimit v1.1.1
 	github.com/google/go-github/v52 v52.0.0
 	go.uber.org/zap v1.28.0
